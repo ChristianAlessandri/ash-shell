@@ -32,8 +32,8 @@ PanelWindow {
     property bool isExpanded: mouseArea.containsMouse
 
     // --- DIMENSIONS & PADDING LOGIC ---
-    property real visualWidth: isExpanded ? 400 : 80
-    property real visualHeight: isExpanded ? 160 : 24
+    property real visualWidth: isExpanded ? 600 : 80
+    property real visualHeight: isExpanded ? 200 : 24
     
     // Asymmetric padding: small gap at the top to stay close to the screen edge,
     // large gap at the bottom/sides to prevent the shadow from being clipped.
