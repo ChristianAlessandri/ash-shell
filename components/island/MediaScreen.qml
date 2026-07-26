@@ -206,19 +206,23 @@ Item {
             Row {
                 anchors.centerIn: parent
                 width: parent.width * 0.9
-                height: 90
-                spacing: 18
+                height: parent.height * 0.85
+                spacing: 20
 
-                // Top section: Album Art and Controls
-                Row {
-                    spacing: 20
-                    width: parent.width
-                    height: 90 
+                // ==================== LEFT COLUMN: Cover & Controls ====================
+                Column {
+                    width: 110 // Fixed width to maintain consistent layout boundaries
+                    height: parent.height
+                    spacing: 12
+                    
+                    // Center the column content vertically relative to the right column
+                    anchors.verticalCenter: parent.verticalCenter
 
-                    // --- ALBUM COVER ART ---
+                    // 1. Album Cover Art
                     Item {
-                        width: height
-                        height: parent.height
+                        width: 110
+                        height: 110
+                        anchors.horizontalCenter: parent.horizontalCenter
 
                         Rectangle {
                             id: coverMask
@@ -248,145 +252,120 @@ Item {
                                 visible: coverImage.status !== Image.Ready
                             }
                         }
+                    }
 
-                        Rectangle {
-                            anchors.fill: parent
-                            color: "transparent"
-                            radius: 12
+                    // 2. Playback Controls
+                    Row {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        spacing: 18
+
+                        Text {
+                            text: "⏮"
+                            color: prevArea.pressed ? Theme.primary : Theme.surfaceText
+                            font.pixelSize: 20
+
+                            MouseArea {
+                                id: prevArea
+                                anchors.fill: parent
+                                anchors.margins: -10 // Expanded hit area for easier clicking
+                                onClicked: if (typeof player.previous === "function") player.previous()
+                            }
+                        }
+
+                        Text {
+                            text: isPlaying ? "⏸" : "▶"
+                            color: playArea.pressed ? Theme.primary : Theme.surfaceText
+                            font.pixelSize: 20
+
+                            MouseArea {
+                                id: playArea
+                                anchors.fill: parent
+                                anchors.margins: -10
+                                onClicked: {
+                                    if (typeof player.togglePlaying === "function")
+                                        player.togglePlaying()
+                                }
+                            }
+                        }
+
+                        Text {
+                            text: "⏭"
+                            color: nextArea.pressed ? Theme.primary : Theme.surfaceText
+                            font.pixelSize: 20
+
+                            MouseArea {
+                                id: nextArea
+                                anchors.fill: parent
+                                anchors.margins: -10
+                                onClicked: if (typeof player.next === "function") player.next()
+                            }
+                        }
+                    }
+                }
+
+                // ==================== RIGHT COLUMN: Metadata & Lyrics ====================
+                Column {
+                    // Calculate remaining width dynamically (Total - LeftColumn - Spacing)
+                    width: parent.width - 130 
+                    height: parent.height
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 4 // Tighter spacing for text elements
+
+                    // --- TRACK INFO ---
+                    Text {
+                        text: trackName
+                        color: Theme.primary
+                        font.pixelSize: 17
+                        font.bold: true
+                        width: parent.width
+                        elide: Text.ElideRight
+                    }
+
+                    Text {
+                        text: artistName
+                        color: Theme.secondary
+                        font.pixelSize: 13
+                        width: parent.width
+                        elide: Text.ElideRight
+                    }
+
+                    // Visual separator between metadata and lyrics
+                    Item { width: 1; height: 10 } 
+
+                    // --- LYRICS ---
+                    Text {
+                        text: previousLyricLine
+                        color: Theme.secondary
+                        opacity: 0.45
+                        font.pixelSize: 12
+                        width: parent.width
+                        elide: Text.ElideRight
+                    }
+
+                    Text {
+                        text: activeLyricLine
+                        color: Theme.primary
+                        font.pixelSize: 15
+                        font.bold: true
+                        width: parent.width
+                        elide: Text.ElideRight
+
+                        Behavior on text {
+                            SequentialAnimation {
+                                NumberAnimation { target: parent; property: "opacity"; to: 0.4; duration: 80 }
+                                PropertyAction {}
+                                NumberAnimation { target: parent; property: "opacity"; to: 1.0; duration: 120 }
+                            }
                         }
                     }
 
-                    // --- TRACK INFO & CONTROLS ---
-                    Row {
-                        width: parent.width - coverImage.width - 20
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 20
-
-                        // CONTROLS
-                        Column {
-                            width: 80
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            Row {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                spacing: 20
-
-                                Text {
-                                    text: "⏮"
-                                    color: prevArea.pressed ? Theme.primary : Theme.surfaceText
-                                    font.pixelSize: 22
-
-                                    MouseArea {
-                                        id: prevArea
-                                        anchors.fill: parent
-                                        anchors.margins: -10
-                                        onClicked: if (typeof player.previous === "function") player.previous()
-                                    }
-                                }
-
-                                Text {
-                                    text: isPlaying ? "⏸" : "▶"
-                                    color: playArea.pressed ? Theme.primary : Theme.surfaceText
-                                    font.pixelSize: 22
-
-                                    MouseArea {
-                                        id: playArea
-                                        anchors.fill: parent
-                                        anchors.margins: -10
-                                        onClicked: {
-                                            if (typeof player.togglePlaying === "function")
-                                                player.togglePlaying()
-                                        }
-                                    }
-                                }
-
-                                Text {
-                                    text: "⏭"
-                                    color: nextArea.pressed ? Theme.primary : Theme.surfaceText
-                                    font.pixelSize: 22
-
-                                    MouseArea {
-                                        id: nextArea
-                                        anchors.fill: parent
-                                        anchors.margins: -10
-                                        onClicked: if (typeof player.next === "function") player.next()
-                                    }
-                                }
-                            }
-                        }
-
-                        // TEXT
-                        Column {
-                            width: parent.width - 100
-                            spacing: 2
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            Text {
-                                text: trackName
-                                color: Theme.primary
-                                font.pixelSize: 18
-                                font.bold: true
-                                width: parent.width
-                                elide: Text.ElideRight
-                            }
-
-                            Text {
-                                text: artistName
-                                color: Theme.secondary
-                                font.pixelSize: 13
-                                width: parent.width
-                                elide: Text.ElideRight
-                            }
-
-                            Item { width: 1; height: 6 }
-
-                            Text {
-                                text: previousLyricLine
-                                color: Theme.secondary
-                                opacity: 0.45
-                                font.pixelSize: 12
-                                width: parent.width
-                                elide: Text.ElideRight
-                            }
-
-                            Text {
-                                text: activeLyricLine
-                                color: Theme.primary
-                                font.pixelSize: 15
-                                font.bold: true
-                                width: parent.width
-                                elide: Text.ElideRight
-
-                                Behavior on text {
-                                    SequentialAnimation {
-                                        NumberAnimation {
-                                            target: parent
-                                            property: "opacity"
-                                            to: 0.4
-                                            duration: 80
-                                        }
-
-                                        PropertyAction {}
-
-                                        NumberAnimation {
-                                            target: parent
-                                            property: "opacity"
-                                            to: 1
-                                            duration: 120
-                                        }
-                                    }
-                                }
-                            }
-
-                            Text {
-                                text: nextLyricLine
-                                color: Theme.secondary
-                                opacity: 0.45
-                                font.pixelSize: 12
-                                width: parent.width
-                                elide: Text.ElideRight
-                            }
-                        }
+                    Text {
+                        text: nextLyricLine
+                        color: Theme.secondary
+                        opacity: 0.45
+                        font.pixelSize: 12
+                        width: parent.width
+                        elide: Text.ElideRight
                     }
                 }
             }
