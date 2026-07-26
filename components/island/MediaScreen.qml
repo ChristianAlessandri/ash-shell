@@ -1,5 +1,5 @@
 import QtQuick
-import QtQuick.Layouts // IMPORTANTE: Richiesto per RowLayout e ColumnLayout
+import QtQuick.Layouts 
 import Quickshell.Services.Mpris
 import Qt5Compat.GraphicalEffects
 import "../../core"
@@ -99,9 +99,12 @@ Item {
                 nextLyricLine = "";
                 parsedLyricsData = [];
 
+                var cleanArtist = artistName.split(/,|\s+e\s+|\s+&\s+|\s+feat\.?\s+|\s+ft\.?\s+/i)[0].trim();
+                var cleanTrack = trackName.replace(/\s*\(.*?\)/g, "").trim();
+                var query = cleanTrack + " " + cleanArtist;
+
                 var xhr = new XMLHttpRequest();
-                var safeArtist = artistName.split(",")[0].trim();
-                var url = "https://lrclib.net/api/get?track_name=" + encodeURIComponent(trackName) + "&artist_name=" + encodeURIComponent(safeArtist);
+                var url = "https://lrclib.net/api/search?q=" + encodeURIComponent(query);
                 
                 xhr.open("GET", url, true);
                 xhr.setRequestHeader("Content-Type", "application/json");
@@ -110,14 +113,19 @@ Item {
                     if (xhr.readyState === XMLHttpRequest.DONE) {
                         if (xhr.status === 200) {
                             var response = JSON.parse(xhr.responseText);
-                            if (response.syncedLyrics) {
-                                parseLRC(response.syncedLyrics);
-                                updateActiveLyric(0);
+                            if (response.length > 0) {
+                                var bestMatch = response[0];
+                                if (bestMatch.syncedLyrics) {
+                                    parseLRC(bestMatch.syncedLyrics);
+                                    updateActiveLyric(0);
+                                } else {
+                                    activeLyricLine = "No synced lyrics available"; 
+                                }
                             } else {
-                                activeLyricLine = "No synced lyrics available"; 
+                                activeLyricLine = "Lyrics not found";
                             }
                         } else {
-                            activeLyricLine = "Lyrics not found";
+                            activeLyricLine = "Error connecting to LRCLib";
                         }
                     }
                 }
@@ -171,7 +179,6 @@ Item {
                 nextLyricLine = current < parsedLyricsData.length - 1 ? parsedLyricsData[current + 1].text : "";
             }
 
-            // --- LYRICS SYNCHRONIZATION TIMER ---
             Timer {
                 interval: 200
                 running: isPlaying && parsedLyricsData.length > 0
@@ -192,11 +199,9 @@ Item {
 
                 // ==================== LEFT COLUMN: Cover & Controls ====================
                 ColumnLayout {
-                    Layout.preferredWidth: 180 
-                    Layout.fillHeight: true
+                    Layout.preferredWidth: 160 
+                    Layout.alignment: Qt.AlignTop 
                     spacing: 24
-
-                    Item { Layout.fillHeight: true }
 
                     // Album Cover Art
                     Item {
@@ -219,7 +224,7 @@ Item {
                             mipmap: true 
                             smooth: true
                             
-                            layer.enabled: coverImage.status === Image.Ready
+                            layer.enabled: coverImage.status === Image.Ready && width > 0 && height > 0
                             layer.effect: OpacityMask {
                                 maskSource: coverMask
                             }
@@ -281,8 +286,6 @@ Item {
                             }
                         }
                     }
-
-                    Item { Layout.fillHeight: true }
                 }
 
                 // ==================== RIGHT COLUMN: Metadata & Lyrics ====================
@@ -317,7 +320,7 @@ Item {
                     Text {
                         Layout.fillWidth: true
                         text: previousLyricLine
-                        color: Theme.secondary
+                        color: Theme.surfaceText
                         opacity: 0.45
                         font.pixelSize: 15
                         elide: Text.ElideRight
@@ -326,7 +329,7 @@ Item {
                     Text {
                         Layout.fillWidth: true
                         text: activeLyricLine
-                        color: Theme.primary
+                        color: Theme.surfaceText
                         font.pixelSize: 20
                         font.bold: true
                         elide: Text.ElideRight
@@ -343,7 +346,7 @@ Item {
                     Text {
                         Layout.fillWidth: true
                         text: nextLyricLine
-                        color: Theme.secondary
+                        color: Theme.surfaceText
                         opacity: 0.45
                         font.pixelSize: 15
                         elide: Text.ElideRight
