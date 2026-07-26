@@ -1,35 +1,131 @@
-// components/island/SystemScreen.qml
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
+import Quickshell.Io
 import "../../core"
 
 Item {
     id: root
     
-    // --- MOCK DATA PROPERTIES ---
-    property real cpuUsage: 0.09
-    property real gpuUsage: 0.23
-    property real storageUsage: 0.04
-    property real memoryUsage: 0.21
+    // --- METRICS STATE PROPERTIES ---
+    property real cpuUsage: 0.0
+    property real gpuUsage: 0.0
+    property real storageUsage: 0.0
+    property real memoryUsage: 0.0
+    
+    property string memText: "0.0 / 0.0 GiB"
+    property string storageText: "0.0 / 0.0 GiB"
+    property string dlSpeed: "0 KB/s"
+    property string ulSpeed: "0 KB/s"
+    
     property var networkHistory: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
-    // --- METRICS SIMULATOR ---
-    Timer {
-        interval: 1000
+    property real lastCpuTotal: 0
+    property real lastCpuIdle: 0
+    property real lastRx: -1
+    property real lastTx: -1
+
+    function formatBytes(bytes) {
+        if (bytes < 1024) return bytes + " B";
+        else if (bytes < 1048576) return (bytes / 1024).toFixed(0) + " KB";
+        else return (bytes / 1048576).toFixed(1) + " MB";
+    }
+
+    // --- CONTINUOUS METRICS PROCESS ---
+    Process {
+        id: metricsProcess
         running: true
-        repeat: true
-        onTriggered: {
-            root.cpuUsage = Math.max(0.01, Math.min(1.0, root.cpuUsage + (Math.random() * 0.1 - 0.05)));
-            root.gpuUsage = Math.max(0.01, Math.min(1.0, root.gpuUsage + (Math.random() * 0.1 - 0.05)));
-            root.memoryUsage = Math.max(0.1, Math.min(1.0, root.memoryUsage + (Math.random() * 0.02 - 0.01)));
-            
-            var newHistory = root.networkHistory.slice(1);
-            newHistory.push(Math.random());
-            root.networkHistory = newHistory;
-            
-            networkCanvas.requestPaint();
-            storageCanvas.requestPaint();
-            memoryCanvas.requestPaint();
+        command: [
+            "bash",
+            "-c",
+            `while true; do
+                CPU=$(head -n 1 /proc/stat)
+                MEM=$(awk '/^MemTotal/ {t=$2} /^MemAvailable/ {a=$2} END {print t, a}' /proc/meminfo)
+                DISK=$(df / | awk 'NR==2 {print $3, $2}')
+                NET=$(sed 's/://g' /proc/net/dev | awk 'NR>2 {rx+=$2; tx+=$10} END {print rx, tx}')
+                GPU=$(cat /sys/class/drm/card0/device/gpu_busy_percent 2>/dev/null || echo 0)
+                
+                echo "$CPU|$MEM|$DISK|$NET|$GPU"
+                sleep 1
+            done`
+        ]
+
+        stdout: SplitParser {
+            onRead: (output) => {
+                var parts = output.trim().split('|');
+                if (parts.length !== 5) return;
+
+                // --- CPU PARSING ---
+                var cpuRaw = parts[0].trim().split(/\s+/);
+                var user = parseInt(cpuRaw[1]);
+                var nice = parseInt(cpuRaw[2]);
+                var system = parseInt(cpuRaw[3]);
+                var idle = parseInt(cpuRaw[4]);
+                var iowait = parseInt(cpuRaw[5]);
+                var irq = parseInt(cpuRaw[6]);
+                var softirq = parseInt(cpuRaw[7]);
+
+                var currentIdle = idle + iowait;
+                var currentNonIdle = user + nice + system + irq + softirq;
+                var currentTotal = currentIdle + currentNonIdle;
+
+                if (root.lastCpuTotal !== 0) {
+                    var totalDiff = currentTotal - root.lastCpuTotal;
+                    var idleDiff = currentIdle - root.lastCpuIdle;
+                    if (totalDiff > 0) {
+                        root.cpuUsage = (totalDiff - idleDiff) / totalDiff;
+                    }
+                }
+                root.lastCpuTotal = currentTotal;
+                root.lastCpuIdle = currentIdle;
+
+                // --- MEMORY PARSING ---
+                var memRaw = parts[1].split(' ');
+                var memTotal = parseInt(memRaw[0]); 
+                var memAvail = parseInt(memRaw[1]); 
+                var memUsed = memTotal - memAvail;
+                root.memoryUsage = memUsed / memTotal;
+                root.memText = (memUsed / 1048576).toFixed(1) + " / " + (memTotal / 1048576).toFixed(1) + " GiB";
+
+                // --- STORAGE PARSING ---
+                var diskRaw = parts[2].split(' ');
+                var diskUsed = parseInt(diskRaw[0]); 
+                var diskTotal = parseInt(diskRaw[1]);
+                root.storageUsage = diskUsed / diskTotal;
+                root.storageText = (diskUsed / 1048576).toFixed(1) + " / " + (diskTotal / 1048576).toFixed(1) + " GiB";
+
+                // --- NETWORK PARSING ---
+                var netRaw = parts[3].split(' ');
+                var rx = parseInt(netRaw[0]);
+                var tx = parseInt(netRaw[1]);
+
+                if (root.lastRx !== -1) {
+                    var rxDiff = rx - root.lastRx;
+                    var txDiff = tx - root.lastTx;
+                    
+                    root.dlSpeed = formatBytes(rxDiff);
+                    root.ulSpeed = formatBytes(txDiff);
+
+                    var maxSpeed = 15728640; 
+                    var normalizedNet = Math.min(1.0, rxDiff / maxSpeed);
+                    var newHistory = root.networkHistory.slice(1);
+                    newHistory.push(normalizedNet);
+                    root.networkHistory = newHistory;
+                    
+                    networkCanvas.requestPaint();
+                }
+                root.lastRx = rx;
+                root.lastTx = tx;
+
+                // --- GPU PARSING ---
+                var gpuParsed = parseInt(parts[4]);
+                if (!isNaN(gpuParsed)) {
+                    root.gpuUsage = gpuParsed / 100.0;
+                }
+
+                storageCanvas.requestPaint();
+                memoryCanvas.requestPaint();
+            }
         }
     }
 
@@ -61,7 +157,6 @@ Item {
     }
 
     // --- UI LAYOUT ---
-    // Sostituito GridLayout con Column + RowLayout per un controllo flexbox perfetto
     Column {
         anchors.fill: parent
         anchors.leftMargin: 20
@@ -70,19 +165,16 @@ Item {
         anchors.bottomMargin: 16
         spacing: 12
 
-        // ==========================================
-        // ROW 1: CPU & GPU (50% e 50%)
-        // ==========================================
+        // ROW 1: CPU & GPU
         RowLayout {
             width: parent.width
             height: 105
             spacing: 12
 
-            // --- CPU ---
             DashboardCard {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                Layout.preferredWidth: 1 // Peso uguale
+                Layout.preferredWidth: 1
 
                 Item {
                     anchors.fill: parent
@@ -98,7 +190,7 @@ Item {
                         Column {
                             anchors.verticalCenter: parent.verticalCenter
                             Text { text: "CPU"; color: Theme.surfaceText; font.bold: true; font.pixelSize: 15 }
-                            Text { text: "AMD Ryzen 5 7600X"; color: Theme.primary; font.pixelSize: 10; opacity: 0.7; elide: Text.ElideRight; width: 120 }
+                            Text { text: "System"; color: Theme.primary; font.pixelSize: 10; opacity: 0.7; elide: Text.ElideRight; width: 120 }
                         }
                     }
 
@@ -107,12 +199,6 @@ Item {
                         anchors.left: parent.left
                         width: parent.width - 75 
                         spacing: 8
-                        
-                        Row {
-                            spacing: 6
-                            Text { text: "\uf2c9"; color: Theme.surfaceText; font.pixelSize: 13 }
-                            Text { text: "71°C"; color: Theme.surfaceText; font.pixelSize: 13; font.bold: true }
-                        }
                         
                         LinearProgressBar {
                             width: parent.width; height: 6
@@ -137,11 +223,10 @@ Item {
                 }
             }
 
-            // --- GPU ---
             DashboardCard {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                Layout.preferredWidth: 1 // Peso uguale
+                Layout.preferredWidth: 1
 
                 Item {
                     anchors.fill: parent
@@ -157,7 +242,7 @@ Item {
                         Column {
                             anchors.verticalCenter: parent.verticalCenter
                             Text { text: "GPU"; color: Theme.surfaceText; font.bold: true; font.pixelSize: 15 }
-                            Text { text: "NVIDIA RTX 4060"; color: Theme.primary; font.pixelSize: 10; opacity: 0.7; elide: Text.ElideRight; width: 120 }
+                            Text { text: "Graphics"; color: Theme.primary; font.pixelSize: 10; opacity: 0.7; elide: Text.ElideRight; width: 120 }
                         }
                     }
 
@@ -166,12 +251,6 @@ Item {
                         anchors.left: parent.left
                         width: parent.width - 75 
                         spacing: 8
-                        
-                        Row {
-                            spacing: 6
-                            Text { text: "\uf2c9"; color: Theme.surfaceText; font.pixelSize: 13 }
-                            Text { text: "42°C"; color: Theme.surfaceText; font.pixelSize: 13; font.bold: true }
-                        }
                         
                         LinearProgressBar {
                             width: parent.width; height: 6
@@ -197,26 +276,21 @@ Item {
             }
         }
 
-        // ==========================================
         // ROW 2: Storage, Network, Memory
-        // ==========================================
         RowLayout {
             width: parent.width
             height: parent.height - 105 - parent.spacing
             spacing: 12
 
-            // --- STORAGE ---
             DashboardCard {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                // Aumentato il peso flex per dare più respiro al testo
                 Layout.preferredWidth: 42 
 
                 Item {
                     anchors.fill: parent
                     anchors.margins: 12
 
-                    // Dimensioni esplicite (66x66) per evitare che si schiacci
                     Item {
                         id: storageChartArea
                         anchors.left: parent.left
@@ -260,39 +334,22 @@ Item {
                         }
                     }
 
-                    // Colonna di testo con spaziature ridotte
                     Column {
                         anchors.left: storageChartArea.right
                         anchors.leftMargin: 10
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 2
+                        spacing: 4
 
-                        Text { text: "Storage"; color: Theme.surfaceText; font.bold: true; font.pixelSize: 14; width: parent.width; elide: Text.ElideRight }
-                        Text { text: "17.6 / 476.9 GiB"; color: Theme.primary; opacity: 0.7; font.pixelSize: 9; width: parent.width; elide: Text.ElideRight }
-                        
-                        Item { width: 1; height: 2 } // Piccolo spaziatore visivo
-                        
-                        Rectangle {
-                            width: Math.min(parent.width, 60); height: 18
-                            radius: 6
-                            color: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.15)
-                            Row {
-                                anchors.centerIn: parent
-                                spacing: 6
-                                Text { text: "\uf0a0"; color: Theme.primary; font.pixelSize: 10 }
-                                Text { text: "sda"; color: Theme.primary; font.pixelSize: 10 }
-                            }
-                        }
+                        Text { text: "Root"; color: Theme.surfaceText; font.bold: true; font.pixelSize: 14; width: parent.width; elide: Text.ElideRight }
+                        Text { text: root.storageText; color: Theme.primary; opacity: 0.7; font.pixelSize: 9; width: parent.width; elide: Text.ElideRight }
                     }
                 }
             }
 
-            // --- NETWORK ---
             DashboardCard {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                // Ridotto per cedere spazio agli altri due
                 Layout.preferredWidth: 33 
 
                 Item {
@@ -318,12 +375,12 @@ Item {
                         Item {
                             width: parent.width; height: 14
                             Text { text: "\uf063 DL"; color: Theme.secondary; font.pixelSize: 10; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
-                            Text { text: "575 KB/s"; color: Theme.surfaceText; font.bold: true; font.pixelSize: 10; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: root.dlSpeed; color: Theme.surfaceText; font.bold: true; font.pixelSize: 10; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter }
                         }
                         Item {
                             width: parent.width; height: 14
                             Text { text: "\uf062 UL"; color: Theme.secondary; font.pixelSize: 10; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
-                            Text { text: "462 KB/s"; color: Theme.surfaceText; font.bold: true; font.pixelSize: 10; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: root.ulSpeed; color: Theme.surfaceText; font.bold: true; font.pixelSize: 10; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter }
                         }
                     }
 
@@ -368,7 +425,6 @@ Item {
                 }
             }
 
-            // --- MEMORY ---
             DashboardCard {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -387,11 +443,10 @@ Item {
                         Text { text: "Memory"; color: Theme.surfaceText; font.bold: true; font.pixelSize: 14 }
                     }
 
-                    // Fissato esplicitamente il Canvas a 66x66 e messo fisicamente al centro
                     Canvas {
                         id: memoryCanvas
                         anchors.centerIn: parent
-                        anchors.verticalCenterOffset: 2 // Lo scosta leggermente in basso rispetto al centro assoluto per bilanciare visivamente i testi
+                        anchors.verticalCenterOffset: 2 
                         width: 66 
                         height: 66
                         
@@ -425,7 +480,7 @@ Item {
 
                     Text {
                         id: memSub
-                        text: "7.4 / 30.4 GiB"
+                        text: root.memText
                         color: Theme.primary
                         opacity: 0.7
                         font.pixelSize: 9
