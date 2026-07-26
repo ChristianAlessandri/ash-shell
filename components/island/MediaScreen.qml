@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Layouts // IMPORTANTE: Richiesto per RowLayout e ColumnLayout
 import Quickshell.Services.Mpris
 import Qt5Compat.GraphicalEffects
 import "../../core"
@@ -111,7 +112,6 @@ Item {
                             var response = JSON.parse(xhr.responseText);
                             if (response.syncedLyrics) {
                                 parseLRC(response.syncedLyrics);
-                                
                                 updateActiveLyric(0);
                             } else {
                                 activeLyricLine = "No synced lyrics available"; 
@@ -127,26 +127,19 @@ Item {
             function parseLRC(lrcString) {
                 var lines = lrcString.split("\n");
                 var tempLyrics = [];
-
                 var regex = /\[(\d+):(\d+(?:\.\d+)?)\](.*)/;
 
                 for (var i = 0; i < lines.length; i++) {
                     var match = regex.exec(lines[i]);
-
-                    if (!match)
-                        continue;
-
+                    if (!match) continue;
                     var text = match[3].trim();
-
-                    if (text.length === 0)
-                        continue;
+                    if (text.length === 0) continue;
 
                     tempLyrics.push({
                         time: parseInt(match[1], 10) * 60 + parseFloat(match[2]),
                         text: text
                     });
                 }
-
                 parsedLyricsData = tempLyrics;
             }
 
@@ -159,7 +152,6 @@ Item {
                 }
 
                 var current = -1;
-
                 for (var i = 0; i < parsedLyricsData.length; i++) {
                     if (timeSec >= parsedLyricsData[i].time)
                         current = i;
@@ -174,18 +166,9 @@ Item {
                     return;
                 }
 
-                previousLyricLine =
-                    current > 0
-                        ? parsedLyricsData[current - 1].text
-                        : "";
-
-                activeLyricLine =
-                    parsedLyricsData[current].text;
-
-                nextLyricLine =
-                    current < parsedLyricsData.length - 1
-                        ? parsedLyricsData[current + 1].text
-                        : "";
+                previousLyricLine = current > 0 ? parsedLyricsData[current - 1].text : "";
+                activeLyricLine = parsedLyricsData[current].text;
+                nextLyricLine = current < parsedLyricsData.length - 1 ? parsedLyricsData[current + 1].text : "";
             }
 
             // --- LYRICS SYNCHRONIZATION TIMER ---
@@ -196,40 +179,35 @@ Item {
 
                 onTriggered: {
                     var pos = Number(player.position || 0);
-
-                    // Compatibility: Some MPRIS implementations return position in microseconds, others in milliseconds. Normalize to seconds.
-                    if (pos > 100000)
-                        pos /= 1000000.0;
-
+                    if (pos > 100000) pos /= 1000000.0;
                     updateActiveLyric(pos);
                 }
             }
 
             // --- UI LAYOUT ---
-            Row {
-                anchors.centerIn: parent
-                width: parent.width * 0.9
-                height: parent.height * 0.85
-                spacing: 20
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: 30 
+                spacing: 40 
 
                 // ==================== LEFT COLUMN: Cover & Controls ====================
-                Column {
-                    width: 110
-                    height: parent.height
-                    spacing: 12
-                    
-                    anchors.verticalCenter: parent.verticalCenter
+                ColumnLayout {
+                    Layout.preferredWidth: 180 
+                    Layout.fillHeight: true
+                    spacing: 24
+
+                    Item { Layout.fillHeight: true }
 
                     // Album Cover Art
                     Item {
-                        width: 110
-                        height: 110
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.preferredWidth: 160
+                        Layout.preferredHeight: 160
 
                         Rectangle {
                             id: coverMask
                             anchors.fill: parent
-                            radius: 12
+                            radius: 16 
                             visible: false 
                         }
 
@@ -238,7 +216,6 @@ Item {
                             anchors.fill: parent
                             source: coverUrl
                             fillMode: Image.PreserveAspectCrop
-                            
                             mipmap: true 
                             smooth: true
                             
@@ -249,40 +226,41 @@ Item {
                             
                             Text {
                                 anchors.centerIn: parent
-                                text: "🎵"
-                                font.pixelSize: 32
+                                text: "\uf001" 
+                                color: Theme.surfaceText
+                                font.pixelSize: 48
                                 visible: coverImage.status !== Image.Ready
                             }
                         }
                     }
 
-                    // Playback Controls
+                    // Playback Controls 
                     Row {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        spacing: 18
+                        Layout.alignment: Qt.AlignHCenter
+                        spacing: 30 
 
                         Text {
-                            text: "⏮"
+                            text: "\uf048" 
                             color: prevArea.pressed ? Theme.primary : Theme.surfaceText
-                            font.pixelSize: 20
+                            font.pixelSize: 22
 
                             MouseArea {
                                 id: prevArea
                                 anchors.fill: parent
-                                anchors.margins: -10 // Expanded hit area for easier clicking
+                                anchors.margins: -15 
                                 onClicked: if (typeof player.previous === "function") player.previous()
                             }
                         }
 
                         Text {
-                            text: isPlaying ? "⏸" : "▶"
+                            text: isPlaying ? "\uf04c" : "\uf04b" 
                             color: playArea.pressed ? Theme.primary : Theme.surfaceText
-                            font.pixelSize: 20
+                            font.pixelSize: 24
 
                             MouseArea {
                                 id: playArea
                                 anchors.fill: parent
-                                anchors.margins: -10
+                                anchors.margins: -15
                                 onClicked: {
                                     if (typeof player.togglePlaying === "function")
                                         player.togglePlaying()
@@ -291,65 +269,66 @@ Item {
                         }
 
                         Text {
-                            text: "⏭"
+                            text: "\uf051" 
                             color: nextArea.pressed ? Theme.primary : Theme.surfaceText
-                            font.pixelSize: 20
+                            font.pixelSize: 22
 
                             MouseArea {
                                 id: nextArea
                                 anchors.fill: parent
-                                anchors.margins: -10
+                                anchors.margins: -15
                                 onClicked: if (typeof player.next === "function") player.next()
                             }
                         }
                     }
+
+                    Item { Layout.fillHeight: true }
                 }
 
                 // ==================== RIGHT COLUMN: Metadata & Lyrics ====================
-                Column {
-                    // Calculate remaining width dynamically (Total - LeftColumn - Spacing)
-                    width: parent.width - 130 
-                    height: parent.height
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 4
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    spacing: 8
+
+                    Item { Layout.fillHeight: true }
 
                     // --- TRACK INFO ---
                     Text {
+                        Layout.fillWidth: true
                         text: trackName
                         color: Theme.primary
-                        font.pixelSize: 17
+                        font.pixelSize: 24 
                         font.bold: true
-                        width: parent.width
                         elide: Text.ElideRight
                     }
 
                     Text {
+                        Layout.fillWidth: true
                         text: artistName
                         color: Theme.secondary
-                        font.pixelSize: 13
-                        width: parent.width
+                        font.pixelSize: 16
                         elide: Text.ElideRight
                     }
 
-                    // Visual separator between metadata and lyrics
-                    Item { width: 1; height: 10 } 
+                    Item { Layout.preferredHeight: 16 } 
 
                     // --- LYRICS ---
                     Text {
+                        Layout.fillWidth: true
                         text: previousLyricLine
                         color: Theme.secondary
                         opacity: 0.45
-                        font.pixelSize: 12
-                        width: parent.width
+                        font.pixelSize: 15
                         elide: Text.ElideRight
                     }
 
                     Text {
+                        Layout.fillWidth: true
                         text: activeLyricLine
                         color: Theme.primary
-                        font.pixelSize: 15
+                        font.pixelSize: 20
                         font.bold: true
-                        width: parent.width
                         elide: Text.ElideRight
 
                         Behavior on text {
@@ -362,13 +341,15 @@ Item {
                     }
 
                     Text {
+                        Layout.fillWidth: true
                         text: nextLyricLine
                         color: Theme.secondary
                         opacity: 0.45
-                        font.pixelSize: 12
-                        width: parent.width
+                        font.pixelSize: 15
                         elide: Text.ElideRight
                     }
+
+                    Item { Layout.fillHeight: true }
                 }
             }
         }
