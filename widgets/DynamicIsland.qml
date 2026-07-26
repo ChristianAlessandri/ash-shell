@@ -12,11 +12,8 @@ PanelWindow {
     exclusiveZone: 20
 
     anchors { top: true }
-    // We remove 'margins { top: 4 }' because the transparent shadow padding 
-    // we are about to add will act as a natural, smooth margin from the screen edge.
 
     property string timeString: "00:00"
-    
     property int currentScreen: 0
     readonly property int totalScreens: 3
 
@@ -35,7 +32,6 @@ PanelWindow {
     property bool isExpanded: mouseArea.containsMouse
 
     // --- DIMENSIONS & PADDING LOGIC ---
-    
     property real visualWidth: isExpanded ? 400 : 80
     property real visualHeight: isExpanded ? 160 : 24
     
