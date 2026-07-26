@@ -322,7 +322,7 @@ Item {
                         text: previousLyricLine
                         color: Theme.surfaceText
                         opacity: 0.45
-                        font.pixelSize: 15
+                        font.pixelSize: 13
                         elide: Text.ElideRight
                     }
 
@@ -330,7 +330,7 @@ Item {
                         Layout.fillWidth: true
                         text: activeLyricLine
                         color: Theme.surfaceText
-                        font.pixelSize: 20
+                        font.pixelSize: 16
                         font.bold: true
                         elide: Text.ElideRight
 
@@ -348,7 +348,7 @@ Item {
                         text: nextLyricLine
                         color: Theme.surfaceText
                         opacity: 0.45
-                        font.pixelSize: 15
+                        font.pixelSize: 13
                         elide: Text.ElideRight
                     }
 
