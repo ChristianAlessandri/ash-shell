@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell.Services.Mpris
+import Qt5Compat.GraphicalEffects
 import "../../core"
 
 Item {
@@ -71,26 +72,44 @@ Item {
                 height: 90 
 
                 // --- ALBUM COVER ART ---
-                Rectangle {
+                Item {
                     width: height
                     height: parent.height
-                    radius: 12
-                    color: Theme.surface 
-                    border.color: Theme.secondary
-                    border.width: 1
-                    clip: true
+
+                    Rectangle {
+                        id: coverMask
+                        anchors.fill: parent
+                        radius: 12
+                        visible: false // Hidden from view, used only as a calculation template for the mask
+                    }
 
                     Image {
+                        id: coverImage
                         anchors.fill: parent
                         source: coverUrl
                         fillMode: Image.PreserveAspectCrop
                         
+                        mipmap: true 
+                        smooth: true
+                        
+                        layer.enabled: true
+                        layer.effect: OpacityMask {
+                            maskSource: coverMask
+                        }
+                        
+                        // Fallback icon
                         Text {
                             anchors.centerIn: parent
                             text: "🎵"
                             font.pixelSize: 32
-                            visible: parent.status !== Image.Ready
+                            visible: coverImage.status !== Image.Ready
                         }
+                    }
+
+                    Rectangle {
+                        anchors.fill: parent
+                        color: "transparent"
+                        radius: 12
                     }
                 }
 
