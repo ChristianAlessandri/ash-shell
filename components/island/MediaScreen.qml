@@ -214,14 +214,13 @@ Item {
 
                 // ==================== LEFT COLUMN: Cover & Controls ====================
                 Column {
-                    width: 110 // Fixed width to maintain consistent layout boundaries
+                    width: 110
                     height: parent.height
                     spacing: 12
                     
-                    // Center the column content vertically relative to the right column
                     anchors.verticalCenter: parent.verticalCenter
 
-                    // 1. Album Cover Art
+                    // Album Cover Art
                     Item {
                         width: 110
                         height: 110
@@ -257,7 +256,7 @@ Item {
                         }
                     }
 
-                    // 2. Playback Controls
+                    // Playback Controls
                     Row {
                         anchors.horizontalCenter: parent.horizontalCenter
                         spacing: 18
@@ -312,7 +311,7 @@ Item {
                     width: parent.width - 130 
                     height: parent.height
                     anchors.verticalCenter: parent.verticalCenter
-                    spacing: 4 // Tighter spacing for text elements
+                    spacing: 4
 
                     // --- TRACK INFO ---
                     Text {
