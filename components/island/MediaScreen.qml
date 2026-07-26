@@ -82,7 +82,9 @@ Item {
 
             function fetchLyrics() {
                 if (trackName === "Unknown Track" || trackName === "") {
+                    previousLyricLine = "";
                     activeLyricLine = "";
+                    nextLyricLine = "";
                     return;
                 }
 
@@ -91,7 +93,9 @@ Item {
 
                 lastFetchedTrack = trackName;
 
+                previousLyricLine = "";
                 activeLyricLine = "Fetching lyrics..."; 
+                nextLyricLine = "";
                 parsedLyricsData = [];
 
                 var xhr = new XMLHttpRequest();
@@ -108,7 +112,6 @@ Item {
                             if (response.syncedLyrics) {
                                 parseLRC(response.syncedLyrics);
                                 
-                                // FORCE INITIAL UPDATE: Immediately evaluate position 0 so the first lyric shows up without waiting for the timer tick
                                 updateActiveLyric(0);
                             } else {
                                 activeLyricLine = "No synced lyrics available"; 
@@ -240,7 +243,7 @@ Item {
                             mipmap: true 
                             smooth: true
                             
-                            layer.enabled: true
+                            layer.enabled: coverImage.status === Image.Ready
                             layer.effect: OpacityMask {
                                 maskSource: coverMask
                             }
