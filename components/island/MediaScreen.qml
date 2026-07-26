@@ -293,9 +293,8 @@ Item {
                 ColumnLayout {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    Layout.alignment: Qt.AlignTop
                     spacing: 8
-
-                    Item { Layout.fillHeight: true }
 
                     // --- TRACK INFO ---
                     Text {
