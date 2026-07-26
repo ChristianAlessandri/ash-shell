@@ -223,6 +223,7 @@ Item {
                             fillMode: Image.PreserveAspectCrop
                             mipmap: true 
                             smooth: true
+                            cache: true
                             
                             layer.enabled: coverImage.status === Image.Ready && width > 0 && height > 0
                             layer.effect: OpacityMask {
