@@ -205,9 +205,9 @@ Item {
             // --- UI LAYOUT ---
             Row {
                 anchors.centerIn: parent
-                width: parent.width * 0.92
-                height: 110
-                spacing: 28
+                width: parent.width * 0.9
+                height: 90
+                spacing: 18
 
                 // Top section: Album Art and Controls
                 Row {
@@ -217,13 +217,13 @@ Item {
 
                     // --- ALBUM COVER ART ---
                     Item {
-                        width: 100
-                        height: 100
+                        width: height
+                        height: parent.height
 
                         Rectangle {
                             id: coverMask
                             anchors.fill: parent
-                            radius: 16
+                            radius: 12
                             visible: false 
                         }
 
@@ -264,12 +264,12 @@ Item {
 
                         // CONTROLS
                         Column {
-                            width: 100
+                            width: 80
                             anchors.verticalCenter: parent.verticalCenter
 
                             Row {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                spacing: 24
+                                spacing: 20
 
                                 Text {
                                     text: "⏮"
@@ -318,7 +318,7 @@ Item {
                         // TEXT
                         Column {
                             width: parent.width - 100
-                            spacing: 4
+                            spacing: 2
                             anchors.verticalCenter: parent.verticalCenter
 
                             Text {
@@ -338,7 +338,7 @@ Item {
                                 elide: Text.ElideRight
                             }
 
-                            Item { width: 1; height: 10 }
+                            Item { width: 1; height: 6 }
 
                             Text {
                                 text: previousLyricLine
