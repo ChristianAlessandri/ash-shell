@@ -216,27 +216,38 @@ Item {
                             visible: false 
                         }
 
-                        Image {
-                            id: coverImage
+                        Item {
                             anchors.fill: parent
-                            source: coverUrl
-                            fillMode: Image.PreserveAspectCrop
-                            mipmap: true 
-                            smooth: true
-                            cache: true
-                            
                             layer.enabled: coverImage.status === Image.Ready && width > 0 && height > 0
                             layer.effect: OpacityMask {
                                 maskSource: coverMask
                             }
-                            
-                            Text {
-                                anchors.centerIn: parent
-                                text: "\uf001" 
-                                color: Theme.surfaceText
-                                font.pixelSize: 48
-                                visible: coverImage.status !== Image.Ready
+
+                            Image {
+                                id: coverImage
+                                anchors.fill: parent
+                                source: coverUrl
+                                fillMode: Image.PreserveAspectCrop
+                                mipmap: true 
+                                smooth: true
+                                cache: true
+                                visible: false 
                             }
+
+                            FastBlur {
+                                anchors.fill: parent
+                                source: coverImage
+                                radius: 20
+                                visible: coverImage.status === Image.Ready
+                            }
+                        }
+                        
+                        Text {
+                            anchors.centerIn: parent
+                            text: "\uf001" 
+                            color: Theme.surfaceText
+                            font.pixelSize: 48
+                            visible: coverImage.status !== Image.Ready
                         }
                     }
 
