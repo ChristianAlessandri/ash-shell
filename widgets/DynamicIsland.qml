@@ -1,6 +1,7 @@
 import Quickshell
 import QtQuick
 import "../core"
+import "../components/island"
 
 PanelWindow {
     id: island
@@ -12,6 +13,10 @@ PanelWindow {
     margins { top: 4 }
 
     property string timeString: "00:00"
+    
+    // State management for pagination
+    property int currentScreen: 0
+    readonly property int totalScreens: 3
 
     Timer {
         interval: 1000
@@ -48,48 +53,40 @@ PanelWindow {
             id: mouseArea
             anchors.fill: parent
             hoverEnabled: true
+
+            onWheel: (wheel) => {
+                if (!island.isExpanded) return;
+                
+                if (wheel.angleDelta.y > 0) {
+                    island.currentScreen = Math.max(0, island.currentScreen - 1)
+                } else if (wheel.angleDelta.y < 0) {
+                    island.currentScreen = Math.min(island.totalScreens - 1, island.currentScreen + 1)
+                }
+            }
         }
 
-        // Compact state
-        Text {
-            anchors.centerIn: parent
-            text: island.timeString 
-            color: Theme.surfaceText
-            font.pixelSize: 14
-            font.bold: true
+        CompactState {
+            anchors.fill: parent
+            timeString: island.timeString
             
             opacity: island.isExpanded ? 0 : 1
             Behavior on opacity { NumberAnimation { duration: 200 } }
         }
 
-        // Expanded state
-        Item {
+        ExpandedState {
             anchors.fill: parent
-            anchors.margins: 20
+            
+            // Sync state with the main window
+            currentScreen: island.currentScreen
+            totalScreens: island.totalScreens
+            timeString: island.timeString
+            
+            // Listen to child's dot click events to update the main state
+            onPageRequested: (index) => { island.currentScreen = index }
             
             opacity: island.isExpanded ? 1 : 0
+            visible: opacity > 0
             Behavior on opacity { NumberAnimation { duration: 400; easing.type: Easing.InOutQuad } }
-
-            Column {
-                anchors.centerIn: parent
-                spacing: 15
-
-                Text {
-                    text: "NXT Shell"
-                    color: Theme.primary 
-                    font.pixelSize: 22
-                    font.bold: true
-                    anchors.horizontalCenter: parent.horizontalCenter
-                }
-
-                Text {
-                    text: "Local time: " + island.timeString
-                    color: Theme.secondary 
-                    font.pixelSize: 14
-                    horizontalAlignment: Text.AlignHCenter
-                    anchors.horizontalCenter: parent.horizontalCenter
-                }
-            }
         }
     }
 }
