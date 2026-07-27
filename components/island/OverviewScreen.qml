@@ -21,6 +21,11 @@ Item {
     property real lastCpuTotal: 0
     property real lastCpuIdle: 0
 
+    // --- WEATHER PROPERTIES ---
+    property string weatherTemp: "--°C"
+    property string weatherDesc: "..."
+    property string weatherIcon: "\uf185"
+
     // --- CONTINUOUS METRICS & INFO PROCESS ---
     Process {
         id: sysInfoProcess
@@ -125,6 +130,46 @@ Item {
 
     Component.onCompleted: updateCalendar()
 
+    // --- WEATHER FETCH LOGIC ---
+    Timer {
+        interval: 1800000 // Update every 30 minutes
+        running: true
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: {
+            var xhr = new XMLHttpRequest();
+            // wttr.in detects location automatically based on IP
+            xhr.open("GET", "https://wttr.in/?format=j1", true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                    try {
+                        var response = JSON.parse(xhr.responseText);
+                        var current = response.current_condition[0];
+                        
+                        root.weatherTemp = current.temp_C + "°C";
+                        root.weatherDesc = current.weatherDesc[0].value;
+                        
+                        var lowerDesc = root.weatherDesc.toLowerCase();
+                        if (lowerDesc.includes("rain") || lowerDesc.includes("drizzle") || lowerDesc.includes("shower")) {
+                            root.weatherIcon = "\uf740"; // Rain
+                        } else if (lowerDesc.includes("snow") || lowerDesc.includes("ice")) {
+                            root.weatherIcon = "\uf2dc"; // Snow
+                        } else if (lowerDesc.includes("thunder") || lowerDesc.includes("storm")) {
+                            root.weatherIcon = "\uf0e7"; // Thunder
+                        } else if (lowerDesc.includes("cloud") || lowerDesc.includes("overcast")) {
+                            root.weatherIcon = "\uf0c2"; // Cloudy
+                        } else {
+                            root.weatherIcon = "\uf185"; // Sunny/Clear
+                        }
+                    } catch(e) {
+                        console.log("Error parsing weather:", e);
+                    }
+                }
+            }
+            xhr.send();
+        }
+    }
+
     // --- REUSABLE COMPONENTS ---
     component DashboardCard : Rectangle {
         color: Qt.rgba(Theme.surfaceText.r, Theme.surfaceText.g, Theme.surfaceText.b, 0.04)
@@ -206,12 +251,33 @@ Item {
                         anchors.margins: 12
                         spacing: 12
                         
-                        Text { text: "\uf185"; font.pixelSize: 32; color: Theme.surfaceText; Layout.alignment: Qt.AlignVCenter }
+                        Text { 
+                            text: root.weatherIcon
+                            font.pixelSize: 32
+                            color: Theme.surfaceText
+                            Layout.alignment: Qt.AlignVCenter 
+                        }
                         
-                        Column {
+                        ColumnLayout {
+                            Layout.fillWidth: true
                             Layout.alignment: Qt.AlignVCenter
-                            Text { text: "32°C"; font.pixelSize: 22; font.bold: true; color: Theme.surfaceText }
-                            Text { text: "Clear"; font.pixelSize: 12; color: Theme.secondary }
+                            spacing: 2
+                            
+                            Text { 
+                                text: root.weatherTemp
+                                font.pixelSize: 22
+                                font.bold: true
+                                color: Theme.surfaceText
+                                Layout.fillWidth: true
+                                elide: Text.ElideRight
+                            }
+                            Text { 
+                                text: root.weatherDesc
+                                font.pixelSize: 12
+                                color: Theme.secondary
+                                Layout.fillWidth: true
+                                elide: Text.ElideRight
+                            }
                         }
                     }
                 }
