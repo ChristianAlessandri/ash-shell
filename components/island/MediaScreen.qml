@@ -222,50 +222,38 @@ Item {
                         }
                     }
 
-                    // Playback Controls 
-                    Row {
+                    // Playback controls 
+                    RowLayout {
                         Layout.alignment: Qt.AlignHCenter
-                        spacing: 30 
-
-                        Text {
-                            text: "\uf048" 
-                            color: prevArea.pressed ? Theme.primary : Theme.surfaceText
-                            font.pixelSize: 22
-
-                            MouseArea {
-                                id: prevArea
-                                anchors.fill: parent
-                                anchors.margins: -15 
-                                onClicked: if (typeof player.previous === "function") player.previous()
+                        spacing: 16
+                        
+                        // Previous button
+                        Rectangle {
+                            width: 36; height: 36; radius: 18; color: Qt.rgba(Theme.surfaceText.r, Theme.surfaceText.g, Theme.surfaceText.b, 0.05)
+                            Text { anchors.centerIn: parent; text: "\uf048"; font.pixelSize: 12; color: Theme.surfaceText }
+                            MouseArea { 
+                                anchors.fill: parent; 
+                                onClicked: if(typeof player.previous === "function") player.previous() 
                             }
                         }
-
-                        Text {
-                            text: isPlaying ? "\uf04c" : "\uf04b" 
-                            color: playArea.pressed ? Theme.primary : Theme.surfaceText
-                            font.pixelSize: 24
-
-                            MouseArea {
-                                id: playArea
-                                anchors.fill: parent
-                                anchors.margins: -15
-                                onClicked: {
-                                    if (typeof player.togglePlaying === "function")
-                                        player.togglePlaying()
-                                }
+                        
+                        // Play/Pause button
+                        Rectangle {
+                            width: 54; height: 40; radius: 20; color: Theme.primary
+                            Text { anchors.centerIn: parent; text: isPlaying ? "\uf04c" : "\uf04b"; font.pixelSize: 16; color: Theme.primaryText }
+                            MouseArea { 
+                                anchors.fill: parent; 
+                                onClicked: if(typeof player.togglePlaying === "function") player.togglePlaying() 
                             }
                         }
-
-                        Text {
-                            text: "\uf051" 
-                            color: nextArea.pressed ? Theme.primary : Theme.surfaceText
-                            font.pixelSize: 22
-
-                            MouseArea {
-                                id: nextArea
-                                anchors.fill: parent
-                                anchors.margins: -15
-                                onClicked: if (typeof player.next === "function") player.next()
+                        
+                        // Next button
+                        Rectangle {
+                            width: 36; height: 36; radius: 18; color: Qt.rgba(Theme.surfaceText.r, Theme.surfaceText.g, Theme.surfaceText.b, 0.05)
+                            Text { anchors.centerIn: parent; text: "\uf051"; font.pixelSize: 12; color: Theme.surfaceText }
+                            MouseArea { 
+                                anchors.fill: parent; 
+                                onClicked: if(typeof player.next === "function") player.next() 
                             }
                         }
                     }
