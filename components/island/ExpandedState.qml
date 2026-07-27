@@ -8,6 +8,8 @@ Item {
     property int totalScreens: 3
     property string timeString: "00:00"
     
+    property var sysMonitor
+    
     // Signal to request a page change when a pagination dot is clicked
     signal pageRequested(int index)
 
@@ -28,6 +30,8 @@ Item {
             height: parent.height
             x: 0
             timeString: root.timeString
+            
+            sysMonitor: root.sysMonitor
         }
 
         MediaScreen {
@@ -40,6 +44,8 @@ Item {
             width: root.width
             height: parent.height
             x: root.width * 2
+            
+            sysMonitor: root.sysMonitor
         }
     }
 

@@ -1,17 +1,20 @@
-// widgets/DynamicIsland.qml
 import Quickshell
 import QtQuick
-import Qt5Compat.GraphicalEffects // Required for the DropShadow effect
+import Qt5Compat.GraphicalEffects
 import "../core"
 import "../components/island"
+import "../services"
 
 PanelWindow {
     id: island
     
     exclusionMode: ExclusionMode.Normal
     exclusiveZone: 16
-
     anchors { top: true }
+
+    SystemMonitor {
+        id: systemMonitorService
+    }
 
     property string timeString: "00:00"
     property int currentScreen: 0
@@ -35,13 +38,10 @@ PanelWindow {
     property real visualWidth: isExpanded ? 600 : 80
     property real visualHeight: isExpanded ? 320 : 24
     
-    // Asymmetric padding: small gap at the top to stay close to the screen edge,
-    // large gap at the bottom/sides to prevent the shadow from being clipped.
     property real shadowPaddingTop: 4
     property real shadowPaddingBottom: 30
     property real shadowPaddingSides: 24
 
-    // The Wayland window size accounts for the uneven padding
     implicitWidth: visualWidth + (shadowPaddingSides * 2)
     implicitHeight: visualHeight + shadowPaddingTop + shadowPaddingBottom
     color: "transparent"
@@ -54,7 +54,6 @@ PanelWindow {
         width: island.visualWidth
         height: island.visualHeight
         
-        // Center horizontally, but explicitly position near the top instead of centering vertically
         anchors.horizontalCenter: parent.horizontalCenter
         y: shadowPaddingTop
 
@@ -115,6 +114,8 @@ PanelWindow {
                 currentScreen: island.currentScreen
                 totalScreens: island.totalScreens
                 timeString: island.timeString
+                
+                sysMonitor: systemMonitorService 
                 
                 onPageRequested: (index) => { island.currentScreen = index }
                 

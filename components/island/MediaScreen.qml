@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import Quickshell.Services.Mpris
 import Qt5Compat.GraphicalEffects
 import "../../core"
+import "../../core/MprisUtils.js" as MprisUtils
 
 Item {
     id: root
@@ -13,20 +14,8 @@ Item {
         spacing: 15
         visible: playerRepeater.count === 0
         
-        Text {
-            text: "Media"
-            color: Theme.primary 
-            font.pixelSize: 22
-            font.bold: true
-            anchors.horizontalCenter: parent.horizontalCenter
-        }
-        
-        Text {
-            text: "No media playing"
-            color: Theme.secondary 
-            font.pixelSize: 14
-            anchors.horizontalCenter: parent.horizontalCenter
-        }
+        Text { text: "Media"; color: Theme.primary; font.pixelSize: 22; font.bold: true; anchors.horizontalCenter: parent.horizontalCenter }
+        Text { text: "No media playing"; color: Theme.secondary; font.pixelSize: 14; anchors.horizontalCenter: parent.horizontalCenter }
     }
 
     // --- ACTIVE STATE ---
@@ -37,35 +26,20 @@ Item {
         delegate: Item {
             width: root.width
             height: root.height
-            
             visible: index === 0 
 
             property var player: modelData
             
-            property string trackName: player.title || (player.metadata && player.metadata["xesam:title"]) || "Unknown Track"
-            property string coverUrl: player.artUrl || (player.metadata && player.metadata["mpris:artUrl"]) || ""
-            
-            property string artistName: {
-                var metaArtist = player.metadata ? player.metadata["xesam:artist"] : null;
-                if (!metaArtist) return player.artist ? String(player.artist) : "Unknown Artist";
-                
-                if (Array.isArray(metaArtist) || typeof metaArtist === "object") {
-                    return metaArtist.length > 0 ? String(metaArtist[0]) : "Unknown Artist";
-                }
-                return String(metaArtist);
-            }
-
-            property bool isPlaying: {
-                var stateString = String(player.playbackState).toLowerCase();
-                var statusString = String(player.playbackStatus).toLowerCase();
-                return stateString === "playing" || stateString === "1";
-            }
+            // UTILIZZO DELLE UTILITY CONDIVISE
+            property string trackName: MprisUtils.getTrackName(player)
+            property string coverUrl: MprisUtils.getCoverUrl(player)
+            property string artistName: MprisUtils.getArtistName(player)
+            property bool isPlaying: MprisUtils.isPlaying(player)
 
             // --- LYRICS STATE MANAGEMENT ---
             property string activeLyricLine: ""
             property string previousLyricLine: ""
             property string nextLyricLine: ""
-
             property var parsedLyricsData: [] 
             property real localPositionSec: 0
             property string lastFetchedTrack: ""
@@ -77,9 +51,7 @@ Item {
                 }
             }
             
-            Component.onCompleted: {
-                fetchLyrics();
-            }
+            Component.onCompleted: fetchLyrics()
 
             function fetchLyrics() {
                 if (trackName === "Unknown Track" || trackName === "") {
@@ -183,7 +155,6 @@ Item {
                 interval: 200
                 running: isPlaying && parsedLyricsData.length > 0
                 repeat: true
-
                 onTriggered: {
                     var pos = Number(player.position || 0);
                     if (pos > 100000) pos /= 1000000.0;
