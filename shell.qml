@@ -3,4 +3,5 @@ import "widgets"
 
 Scope {
     DynamicIsland {}
+    PowerMenu {}
 }
