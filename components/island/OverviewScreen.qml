@@ -10,21 +10,79 @@ Item {
     id: root
     property string timeString: "00:00"
 
-    // --- SYSTEM DATA (Process) ---
+    // --- SYSTEM DATA PROPERTIES ---
     property string uptimeText: "up 0 minutes"
     property string userInfo: "user@linux"
+    
+    property real cpuUsage: 0.0
+    property real memoryUsage: 0.0
+    property real storageUsage: 0.0
+    
+    property real lastCpuTotal: 0
+    property real lastCpuIdle: 0
 
+    // --- CONTINUOUS METRICS & INFO PROCESS ---
     Process {
         id: sysInfoProcess
         running: true
-        command: ["bash", "-c", "echo \"$(whoami)@$(hostname)|up $(awk '{print int($1/60)}' /proc/uptime) minutes\""]
+        command: [
+            "bash",
+            "-c",
+            `while true; do
+                USER_INFO="$(whoami)@$(hostname)"
+                UPTIME="up $(awk '{print int($1/60)}' /proc/uptime) minutes"
+                CPU=$(head -n 1 /proc/stat)
+                MEM=$(awk '/^MemTotal/ {t=$2} /^MemAvailable/ {a=$2} END {print t, a}' /proc/meminfo)
+                DISK=$(df / | awk 'NR==2 {print $3, $2}')
+                
+                echo "$USER_INFO|$UPTIME|$CPU|$MEM|$DISK"
+                sleep 1
+            done`
+        ]
         stdout: SplitParser {
             onRead: (line) => {
                 var parts = line.split('|');
-                if(parts.length === 2) {
-                    root.userInfo = parts[0];
-                    root.uptimeText = parts[1];
+                if(parts.length !== 5) return;
+
+                // 1. User & Uptime
+                root.userInfo = parts[0];
+                root.uptimeText = parts[1];
+
+                // 2. CPU Usage
+                var cpuRaw = parts[2].trim().split(/\s+/);
+                var user = parseInt(cpuRaw[1]);
+                var nice = parseInt(cpuRaw[2]);
+                var system = parseInt(cpuRaw[3]);
+                var idle = parseInt(cpuRaw[4]);
+                var iowait = parseInt(cpuRaw[5]);
+                var irq = parseInt(cpuRaw[6]);
+                var softirq = parseInt(cpuRaw[7]);
+
+                var currentIdle = idle + iowait;
+                var currentNonIdle = user + nice + system + irq + softirq;
+                var currentTotal = currentIdle + currentNonIdle;
+
+                if (root.lastCpuTotal !== 0) {
+                    var totalDiff = currentTotal - root.lastCpuTotal;
+                    var idleDiff = currentIdle - root.lastCpuIdle;
+                    if (totalDiff > 0) {
+                        root.cpuUsage = (totalDiff - idleDiff) / totalDiff;
+                    }
                 }
+                root.lastCpuTotal = currentTotal;
+                root.lastCpuIdle = currentIdle;
+
+                // 3. Memory Usage
+                var memRaw = parts[3].split(' ');
+                var memTotal = parseInt(memRaw[0]); 
+                var memAvail = parseInt(memRaw[1]); 
+                root.memoryUsage = (memTotal - memAvail) / memTotal;
+
+                // 4. Storage Usage
+                var diskRaw = parts[4].split(' ');
+                var diskUsed = parseInt(diskRaw[0]); 
+                var diskTotal = parseInt(diskRaw[1]);
+                root.storageUsage = diskUsed / diskTotal;
             }
         }
     }
@@ -40,24 +98,21 @@ Item {
         var firstDay = new Date(currentYear, currentMonth, 1);
         var lastDay = new Date(currentYear, currentMonth + 1, 0);
         
-        var startingDayOfWeek = firstDay.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-        var emptyDays = startingDayOfWeek === 0 ? 6 : startingDayOfWeek - 1; // Aligning to Monday as the first day of the week
+        var startingDayOfWeek = firstDay.getDay(); 
+        var emptyDays = startingDayOfWeek === 0 ? 6 : startingDayOfWeek - 1; 
         
         var prevMonthLastDay = new Date(currentYear, currentMonth, 0).getDate();
         
-        // Add days from the previous month to fill the empty slots at the beginning of the calendar
         for (var i = emptyDays - 1; i >= 0; i--) {
             days.push({ day: prevMonthLastDay - i, isCurrentMonth: false, isToday: false });
         }
         
-        // Add days of the current month
         var today = new Date();
         for (var j = 1; j <= lastDay.getDate(); j++) {
             var isToday = (j === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear());
             days.push({ day: j, isCurrentMonth: true, isToday: isToday });
         }
         
-        // Add days from the next month to complete the grid to 35 or 42 cells
         var remaining = 35 - days.length;
         if (remaining < 0) remaining = 42 - days.length; 
         
@@ -85,7 +140,10 @@ Item {
         
         width: 32; height: 32 
         
+        onValueChanged: canvas.requestPaint()
+        
         Canvas {
+            id: canvas
             anchors.fill: parent
             onPaint: {
                 var ctx = getContext("2d");
@@ -234,7 +292,7 @@ Item {
                         anchors.margins: 10
                         spacing: 4
 
-                        // Calendar header (month and year)
+                        // Header
                         RowLayout {
                             Layout.fillWidth: true
                             
@@ -271,7 +329,7 @@ Item {
                             }
                         }
 
-                        // Days of the week header
+                        // Days
                         RowLayout {
                             Layout.fillWidth: true
                             Repeater {
@@ -280,7 +338,6 @@ Item {
                             }
                         }
 
-                        // Days grid
                         GridLayout {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
@@ -316,7 +373,7 @@ Item {
                     }
                 }
 
-                // System stats
+                // System Gauges
                 DashboardCard {
                     Layout.fillHeight: true
                     Layout.preferredWidth: 50
@@ -328,9 +385,9 @@ Item {
                         spacing: 8
                         
                         Item { Layout.fillHeight: true }
-                        MiniRingGauge { Layout.alignment: Qt.AlignHCenter; value: 0.35; icon: "\uf2db" } 
-                        MiniRingGauge { Layout.alignment: Qt.AlignHCenter; value: 0.62; icon: "" }   
-                        MiniRingGauge { Layout.alignment: Qt.AlignHCenter; value: 0.81; icon: "\uf0a0" } 
+                        MiniRingGauge { Layout.alignment: Qt.AlignHCenter; value: root.cpuUsage; icon: "\uf2db" } 
+                        MiniRingGauge { Layout.alignment: Qt.AlignHCenter; value: root.memoryUsage; icon: "" }   
+                        MiniRingGauge { Layout.alignment: Qt.AlignHCenter; value: root.storageUsage; icon: "\uf0a0" } 
                         Item { Layout.fillHeight: true }
                     }
                 }
