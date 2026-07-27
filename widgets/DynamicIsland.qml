@@ -9,7 +9,7 @@ PanelWindow {
     id: island
     
     exclusionMode: ExclusionMode.Normal
-    exclusiveZone: 20
+    exclusiveZone: 16
 
     anchors { top: true }
 
