@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import Quickshell.Services.Mpris
 import Qt5Compat.GraphicalEffects
 import "../../core"
+import "../../components"
 import "../../core/MprisUtils.js" as MprisUtils
 
 Item {
@@ -30,7 +31,7 @@ Item {
 
             property var player: modelData
             
-            // UTILIZZO DELLE UTILITY CONDIVISE
+            // SHARED PROPERTIES
             property string trackName: MprisUtils.getTrackName(player)
             property string coverUrl: MprisUtils.getCoverUrl(player)
             property string artistName: MprisUtils.getArtistName(player)
@@ -165,164 +166,177 @@ Item {
             // --- UI LAYOUT ---
             RowLayout {
                 anchors.fill: parent
-                anchors.margins: 30 
-                spacing: 40 
+                anchors.margins: 16
+                spacing: 12
 
                 // ==================== LEFT COLUMN: Cover & Controls ====================
-                ColumnLayout {
-                    Layout.preferredWidth: 160 
-                    Layout.alignment: Qt.AlignTop 
-                    spacing: 24
+                DashboardCard {
+                    Layout.preferredWidth: 190
+                    Layout.fillHeight: true
 
-                    // Album Cover Art
-                    Item {
-                        Layout.alignment: Qt.AlignHCenter
-                        Layout.preferredWidth: 160
-                        Layout.preferredHeight: 160
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 12
+                        
+                        Item { Layout.fillHeight: true }
 
-                        Rectangle {
-                            id: coverMask
-                            anchors.fill: parent
-                            radius: 16 
-                            visible: false 
-                        }
-
+                        // Album Cover Art
                         Item {
-                            anchors.fill: parent
-                            layer.enabled: coverImage.status === Image.Ready && width > 0 && height > 0
-                            layer.effect: OpacityMask {
-                                maskSource: coverMask
-                            }
+                            Layout.alignment: Qt.AlignHCenter
+                            Layout.preferredWidth: 130
+                            Layout.preferredHeight: 130 
 
-                            Image {
-                                id: coverImage
+                            Rectangle {
+                                id: coverMask
                                 anchors.fill: parent
-                                source: coverUrl
-                                fillMode: Image.PreserveAspectCrop
-                                mipmap: true 
-                                smooth: true
-                                cache: true
+                                radius: 14 
                                 visible: false 
                             }
 
-                            FastBlur {
+                            Item {
                                 anchors.fill: parent
-                                source: coverImage
-                                radius: 20
-                                visible: coverImage.status === Image.Ready
-                            }
-                        }
-                        
-                        Text {
-                            anchors.centerIn: parent
-                            text: "\uf001" 
-                            color: Theme.surfaceText
-                            font.pixelSize: 48
-                            visible: coverImage.status !== Image.Ready
-                        }
-                    }
+                                layer.enabled: coverImage.status === Image.Ready && width > 0 && height > 0
+                                layer.effect: OpacityMask {
+                                    maskSource: coverMask
+                                }
 
-                    // Playback controls 
-                    RowLayout {
-                        Layout.alignment: Qt.AlignHCenter
-                        spacing: 16
-                        
-                        // Previous button
-                        Rectangle {
-                            width: 36; height: 36; radius: 18; color: Qt.rgba(Theme.surfaceText.r, Theme.surfaceText.g, Theme.surfaceText.b, 0.05)
-                            Text { anchors.centerIn: parent; text: "\uf048"; font.pixelSize: 12; color: Theme.surfaceText }
-                            MouseArea { 
-                                anchors.fill: parent; 
-                                onClicked: if(typeof player.previous === "function") player.previous() 
+                                Image {
+                                    id: coverImage
+                                    anchors.fill: parent
+                                    source: coverUrl
+                                    fillMode: Image.PreserveAspectCrop
+                                    mipmap: true 
+                                    smooth: true
+                                    cache: true
+                                    visible: false 
+                                }
+
+                                FastBlur {
+                                    anchors.fill: parent
+                                    source: coverImage
+                                    radius: 20
+                                    visible: coverImage.status === Image.Ready
+                                }
+                            }
+                            
+                            Text {
+                                anchors.centerIn: parent
+                                text: "\uf001" 
+                                color: Theme.surfaceText
+                                font.pixelSize: 42
+                                visible: coverImage.status !== Image.Ready
                             }
                         }
-                        
-                        // Play/Pause button
-                        Rectangle {
-                            width: 54; height: 40; radius: 20; color: Theme.primary
-                            Text { anchors.centerIn: parent; text: isPlaying ? "\uf04c" : "\uf04b"; font.pixelSize: 16; color: Theme.primaryText }
-                            MouseArea { 
-                                anchors.fill: parent; 
-                                onClicked: if(typeof player.togglePlaying === "function") player.togglePlaying() 
+
+                        // Playback controls
+                        RowLayout {
+                            Layout.alignment: Qt.AlignHCenter
+                            spacing: 12
+                            
+                            // Previous button
+                            Rectangle {
+                                width: 36; height: 36; radius: 18; color: Qt.rgba(Theme.surfaceText.r, Theme.surfaceText.g, Theme.surfaceText.b, 0.05)
+                                Text { anchors.centerIn: parent; text: "\uf048"; font.pixelSize: 12; color: Theme.surfaceText }
+                                MouseArea { 
+                                    anchors.fill: parent; 
+                                    onClicked: if(typeof player.previous === "function") player.previous() 
+                                }
+                            }
+                            
+                            // Play/Pause button
+                            Rectangle {
+                                width: 54; height: 40; radius: 20; color: Theme.primary
+                                Text { anchors.centerIn: parent; text: isPlaying ? "\uf04c" : "\uf04b"; font.pixelSize: 16; color: Theme.primaryText }
+                                MouseArea { 
+                                    anchors.fill: parent; 
+                                    onClicked: if(typeof player.togglePlaying === "function") player.togglePlaying() 
+                                }
+                            }
+                            
+                            // Next button
+                            Rectangle {
+                                width: 36; height: 36; radius: 18; color: Qt.rgba(Theme.surfaceText.r, Theme.surfaceText.g, Theme.surfaceText.b, 0.05)
+                                Text { anchors.centerIn: parent; text: "\uf051"; font.pixelSize: 12; color: Theme.surfaceText }
+                                MouseArea { 
+                                    anchors.fill: parent; 
+                                    onClicked: if(typeof player.next === "function") player.next() 
+                                }
                             }
                         }
-                        
-                        // Next button
-                        Rectangle {
-                            width: 36; height: 36; radius: 18; color: Qt.rgba(Theme.surfaceText.r, Theme.surfaceText.g, Theme.surfaceText.b, 0.05)
-                            Text { anchors.centerIn: parent; text: "\uf051"; font.pixelSize: 12; color: Theme.surfaceText }
-                            MouseArea { 
-                                anchors.fill: parent; 
-                                onClicked: if(typeof player.next === "function") player.next() 
-                            }
-                        }
+
+                        Item { Layout.fillHeight: true }
                     }
                 }
 
                 // ==================== RIGHT COLUMN: Metadata & Lyrics ====================
-                ColumnLayout {
+                DashboardCard {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    Layout.alignment: Qt.AlignTop
-                    spacing: 8
 
-                    // --- TRACK INFO ---
-                    Text {
-                        Layout.fillWidth: true
-                        text: trackName
-                        color: Theme.primary
-                        font.pixelSize: 24 
-                        font.bold: true
-                        elide: Text.ElideRight
-                    }
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 24
+                        spacing: 8
 
-                    Text {
-                        Layout.fillWidth: true
-                        text: artistName
-                        color: Theme.secondary
-                        font.pixelSize: 16
-                        elide: Text.ElideRight
-                    }
+                        // --- TRACK INFO ---
+                        Text {
+                            Layout.fillWidth: true
+                            text: trackName
+                            color: Theme.primary
+                            font.pixelSize: 24 
+                            font.bold: true
+                            elide: Text.ElideRight
+                        }
 
-                    Item { Layout.preferredHeight: 16 } 
+                        Text {
+                            Layout.fillWidth: true
+                            text: artistName
+                            color: Theme.secondary
+                            font.pixelSize: 16
+                            elide: Text.ElideRight
+                        }
 
-                    // --- LYRICS ---
-                    Text {
-                        Layout.fillWidth: true
-                        text: previousLyricLine
-                        color: Theme.surfaceText
-                        opacity: 0.45
-                        font.pixelSize: 13
-                        elide: Text.ElideRight
-                    }
+                        Item { Layout.preferredHeight: 16 }
 
-                    Text {
-                        Layout.fillWidth: true
-                        text: activeLyricLine
-                        color: Theme.surfaceText
-                        font.pixelSize: 16
-                        font.bold: true
-                        elide: Text.ElideRight
+                        // --- LYRICS ---
+                        Text {
+                            Layout.fillWidth: true
+                            text: previousLyricLine
+                            color: Theme.surfaceText
+                            opacity: 0.45
+                            font.pixelSize: 13
+                            elide: Text.ElideRight
+                        }
 
-                        Behavior on text {
-                            SequentialAnimation {
-                                NumberAnimation { target: parent; property: "opacity"; to: 0.4; duration: 80 }
-                                PropertyAction {}
-                                NumberAnimation { target: parent; property: "opacity"; to: 1.0; duration: 120 }
+                        Text {
+                            Layout.fillWidth: true
+                            text: activeLyricLine
+                            color: Theme.surfaceText
+                            font.pixelSize: 16
+                            font.bold: true
+                            elide: Text.ElideRight
+
+                            Behavior on text {
+                                SequentialAnimation {
+                                    NumberAnimation { target: parent; property: "opacity"; to: 0.4; duration: 80 }
+                                    PropertyAction {}
+                                    NumberAnimation { target: parent; property: "opacity"; to: 1.0; duration: 120 }
+                                }
                             }
                         }
-                    }
 
-                    Text {
-                        Layout.fillWidth: true
-                        text: nextLyricLine
-                        color: Theme.surfaceText
-                        opacity: 0.45
-                        font.pixelSize: 13
-                        elide: Text.ElideRight
-                    }
+                        Text {
+                            Layout.fillWidth: true
+                            text: nextLyricLine
+                            color: Theme.surfaceText
+                            opacity: 0.45
+                            font.pixelSize: 13
+                            elide: Text.ElideRight
+                        }
 
-                    Item { Layout.fillHeight: true }
+                        Item { Layout.fillHeight: true }
+                    }
                 }
             }
         }
