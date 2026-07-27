@@ -16,6 +16,10 @@ PanelWindow {
         id: systemMonitorService
     }
 
+    ThemeEngine {
+        id: themeEngine
+    }
+
     property string timeString: "00:00"
     property int currentScreen: 0
     readonly property int totalScreens: 3
