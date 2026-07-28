@@ -11,11 +11,9 @@ PanelWindow {
     anchors { 
         bottom: true 
         left: true
-        right: true
     }
 
-    exclusionMode: ExclusionMode.Normal
-    exclusiveZone: 28
+    exclusionMode: ExclusionMode.Ignore
 
     mask: Region { item: dockItem }
 
@@ -27,8 +25,8 @@ PanelWindow {
     // Invisible paddings
     property real shadowPaddingBottom: 4
     property real shadowPaddingLeft: 4
-    property real shadowPaddingTop: 260 // Extra space to allow the animation to expand upwards
-    property real shadowPaddingRight: 160 // Extra space to allow the animation to expand to the right
+    property real shadowPaddingTop: 260 
+    property real shadowPaddingRight: 160 
 
     implicitWidth: visualWidth + shadowPaddingLeft + shadowPaddingRight
     implicitHeight: visualHeight + shadowPaddingTop + shadowPaddingBottom
