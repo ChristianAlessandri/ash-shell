@@ -1,25 +1,29 @@
-# ASH Shell (Another SHell)
+# YourShell
 
-A highly interactive, responsive, and aesthetically pleasing "Dynamic Island" widget for Linux desktops, built with **Qt 6**, **QML**, and **Quickshell**. It features a compact default state that expands on hover to reveal a multi-screen dashboard with system metrics, media controls, and weather information.
+A highly interactive, responsive, and aesthetically pleasing shell for Linux desktops, built with **Qt 6**, **QML**, and **Quickshell**. It features a compact "Dynamic Island" widget that expands on hover to reveal a multi-screen dashboard, alongside hidden edge-triggered menus for system controls.
 
-## 🌟 Features
+## 🚀 Features
 
 - **Fluid Animations & Responsive Design:** Built heavily on `RowLayout` and `ColumnLayout` for a Flexbox-like, fluid UI that scales beautifully.
-- **Three Swipeable/Scrollable Screens:**
+- **Dynamic Island (Top Center):** Three Swipeable/Scrollable Screens:
   - **Overview:** Displays time, interactive calendar, current weather (via `wttr.in`), user info, system uptime, and mini hardware gauges.
   - **Media Player:** Full MPRIS integration with playback controls, blurred album art backgrounds, and **real-time synchronized lyrics** fetched automatically via `lrclib.net`.
   - **System Monitor:** Advanced, live-updating metrics including CPU, GPU, RAM, Storage, and a live Network traffic history graph.
+- **Quick Control Menu (Right Edge):** An invisible hot-edge trigger on the right side of the screen that smoothly expands into a sleek control panel. It features custom vertical sliders for Volume and Brightness, powered by a smart hardware detection script that automatically uses `brightnessctl` for laptops and `ddcutil` (DDC/CI) for external desktop monitors.
+- **Power Menu (Bottom-Left Hot Corner):** A completely unobtrusive hot corner that reveals a beautifully animated system power menu (Log Out, Suspend, Restart, Shut Down). Includes a universal desktop environment detection script for safe logouts across Hyprland, Sway, GNOME, KDE, and more.
 - **Chameleon Theme Engine (Zero Dependencies):** Automatically extracts the dominant color from your current wallpaper and dynamically generates a cohesive UI color palette (Primary, Secondary, and Surface colors). No external tools like `pywal` required!
 - **Efficient Resource Usage:** Centralized bash processing ensures hardware metrics are only polled once globally, keeping CPU and RAM footprints minimal.
 
-## 🛠 Prerequisites
+## 📦 Prerequisites
 
-- [Quickshell](https://quickshell.org//) installed and configured on your system.
+- [Quickshell](https://quickshell.org/) installed and configured on your system.
 - Qt 6 (specifically `qt6-declarative`, `qt6-5compat` for GraphicalEffects).
 - Standard Linux utilities (`bash`, `awk`, `df`, etc.).
+- `wireplumber` (`wpctl`) for audio volume management.
+- `brightnessctl` (for laptop screens) or `ddcutil` (for external monitors) for brightness controls.
 - An active internet connection (for weather and lyrics).
 
-## 🚀 Installation
+## 🛠️ Installation
 
 1. Clone this repository into your Quickshell configuration directory (usually `~/.config/quickshell/`).
 2. Start or reload Quickshell.
