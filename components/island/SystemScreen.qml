@@ -226,7 +226,7 @@ Item {
                         anchors.top: parent.top
                         anchors.horizontalCenter: parent.horizontalCenter
                         spacing: 8
-                        Text { text: ""; color: Theme.surfaceText; font.pixelSize: 14 }
+                        Text { text: "\uefc5"; color: Theme.surfaceText; font.pixelSize: 14 }
                         Text { text: "Memory"; color: Theme.surfaceText; font.bold: true; font.pixelSize: 14 }
                     }
 

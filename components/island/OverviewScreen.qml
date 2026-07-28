@@ -302,7 +302,7 @@ Item {
                         Item { Layout.fillHeight: true }
                         
                         CircularGauge { width: 32; height: 32; Layout.alignment: Qt.AlignHCenter; value: sysMonitor.cpuUsage; iconText: "\uf2db" } 
-                        CircularGauge { width: 32; height: 32; Layout.alignment: Qt.AlignHCenter; value: sysMonitor.memoryUsage; iconText: "" }   
+                        CircularGauge { width: 32; height: 32; Layout.alignment: Qt.AlignHCenter; value: sysMonitor.memoryUsage; iconText: "\uefc5" }   
                         CircularGauge { width: 32; height: 32; Layout.alignment: Qt.AlignHCenter; value: sysMonitor.storageUsage; iconText: "\uf0a0" } 
                         
                         Item { Layout.fillHeight: true }
