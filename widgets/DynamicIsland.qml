@@ -36,7 +36,7 @@ PanelWindow {
         }
     }
 
-    property bool isExpanded: mouseArea.containsMouse
+    property bool isExpanded: hoverHandler.hovered
 
     // --- DIMENSIONS & PADDING LOGIC ---
     property real visualWidth: isExpanded ? 600 : 80
@@ -88,11 +88,16 @@ PanelWindow {
 
             Behavior on radius { NumberAnimation { duration: 350; easing.type: Easing.OutExpo } }
 
-            MouseArea {
-                id: mouseArea
-                anchors.fill: parent
-                hoverEnabled: true
+            HoverHandler {
+                id: hoverHandler
+            }
 
+            MouseArea {
+                anchors.fill: parent
+                
+                acceptedButtons: Qt.NoButton 
+                hoverEnabled: false          
+                
                 onWheel: (wheel) => {
                     if (!island.isExpanded) return;
                     
