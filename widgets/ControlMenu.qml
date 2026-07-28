@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
+import Qt5Compat.GraphicalEffects
 import "../core"
 import "../components"
 
@@ -12,20 +13,29 @@ PanelWindow {
         right: true
     }
 
-    exclusionMode: ExclusionMode.Ignore
+    exclusionMode: ExclusionMode.Normal
+    exclusiveZone: 20
+
+    mask: Region { item: dockItem }
 
     property bool isExpanded: hoverHandler.hovered
     
-    property real visualWidth: isExpanded ? 140 : 20
-    property real visualHeight: isExpanded ? 240 : 160
+    // --- DIMENSIONS ---
+    property real visualWidth: isExpanded ? 160 : 32
+    property real visualHeight: isExpanded ? 240 : 100
 
-    implicitWidth: visualWidth
-    implicitHeight: visualHeight
+    property real shadowPaddingTop: 4
+    property real shadowPaddingBottom: 4
+    property real shadowPaddingRight: 4
+    property real shadowPaddingLeft: 160
+
+    implicitWidth: visualWidth + shadowPaddingLeft + shadowPaddingRight
+    implicitHeight: visualHeight + shadowPaddingTop + shadowPaddingBottom
     
     color: "transparent"
 
-    Behavior on visualWidth { NumberAnimation { duration: 300; easing.type: Easing.OutExpo } }
-    Behavior on visualHeight { NumberAnimation { duration: 300; easing.type: Easing.OutExpo } }
+    Behavior on visualWidth { NumberAnimation { duration: 350; easing.type: Easing.OutExpo } }
+    Behavior on visualHeight { NumberAnimation { duration: 350; easing.type: Easing.OutExpo } }
 
     // --- EXECUTION PROCESSES ---
     Process { id: setVolProc }
@@ -48,18 +58,15 @@ PanelWindow {
         }
     }
 
-    // --- FETCHING PROCESSES ---
     Process {
         id: briFetcher
         running: true
         command: ["bash", "-c", `
             while true; do
                 if [ "$(ls -A /sys/class/backlight 2>/dev/null)" ]; then
-                    # Notebook
                     brightnessctl -c backlight -m 2>/dev/null | awk -F, '{print $4}' | tr -d '%'
                     sleep 1
                 elif command -v ddcutil &>/dev/null; then
-                    # External monitor
                     ddcutil getvcp 10 2>/dev/null | grep -oP 'current value =\\s*\\K[0-9]+' || echo 50
                     sleep 5
                 else
@@ -75,41 +82,86 @@ PanelWindow {
         }
     }
 
-    // --- MAIN CONTAINER ---
+    // --- UI LAYERS ---
     Item {
+        id: dockItem
         width: controlPanel.visualWidth
         height: controlPanel.visualHeight
         
-        HoverHandler { id: hoverHandler }
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.right: parent.right
+        anchors.rightMargin: controlPanel.shadowPaddingRight
 
-        Rectangle {
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            width: 20
-            height: 160
-            radius: 10
-            color: Theme.primary 
-            opacity: 0
-            Behavior on opacity { NumberAnimation { duration: 200 } }
-        }
-
+        // ELEVATION SHADOW LAYER
         Rectangle {
             anchors.fill: parent
-            anchors.margins: controlPanel.isExpanded ? 12 : 0
             color: Theme.surface
-            radius: 16
+            radius: menuBackground.radius
+            
+            layer.enabled: true
+            layer.effect: DropShadow {
+                transparentBorder: true
+                color: Qt.rgba(0, 0, 0, 0.4) 
+                radius: 15     
+                samples: 31    
+                verticalOffset: 4
+                horizontalOffset: 0
+            }
+        }
+
+        // MAIN CONTENT LAYER
+        Rectangle {
+            id: menuBackground
+            anchors.fill: parent
+            color: Theme.surface
+            
+            radius: controlPanel.isExpanded ? 16 : controlPanel.visualWidth / 2
             border.color: Qt.rgba(Theme.surfaceText.r, Theme.surfaceText.g, Theme.surfaceText.b, 0.08)
             border.width: 1
-            opacity: controlPanel.isExpanded ? 1 : 0
             clip: true
             
-            Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutExpo } }
+            Behavior on radius { NumberAnimation { duration: 350; easing.type: Easing.OutExpo } }
+
+            HoverHandler {
+                id: hoverHandler
+            }
+
+            // --- COMPACT STATE (Pillola Verticale) ---
+            Item {
+                anchors.fill: parent
+                opacity: controlPanel.isExpanded ? 0 : 1
+                visible: opacity > 0
+                Behavior on opacity { NumberAnimation { duration: 200 } }
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 24
+
+                    Text {
+                        text: "\uf185"
+                        color: Theme.primary
+                        font.pixelSize: 16
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+
+                    Text {
+                        text: "\uf028"
+                        color: Theme.secondary
+                        font.pixelSize: 16
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                }
+            }
             
+            // --- EXPANDED STATE (Sliders) ---
             RowLayout {
                 anchors.fill: parent
                 anchors.margins: 20
                 spacing: 24
-                visible: controlPanel.isExpanded
+                
+                opacity: controlPanel.isExpanded ? 1 : 0
+                visible: opacity > 0
+                Behavior on opacity { NumberAnimation { duration: 350; easing.type: Easing.InOutQuad } }
 
                 // Brightness slider
                 CustomVerticalSlider {
