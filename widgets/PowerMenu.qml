@@ -1,34 +1,43 @@
+import Quickshell
 import QtQuick
 import QtQuick.Layouts
-import Quickshell
 import Quickshell.Io
+import Qt5Compat.GraphicalEffects
 import "../core"
 
 PanelWindow {
     id: powerPanel
-
-    anchors {
-        bottom: true
+    
+    anchors { 
+        bottom: true 
         left: true
+        right: true
     }
 
-    exclusionMode: ExclusionMode.Ignore
+    exclusionMode: ExclusionMode.Normal
+    exclusiveZone: 28
+
+    mask: Region { item: dockItem }
 
     property bool isExpanded: hoverHandler.hovered
-    
-    property real visualWidth: isExpanded ? 200 : 60
-    property real visualHeight: isExpanded ? 300 : 60
 
-    implicitWidth: visualWidth
-    implicitHeight: visualHeight
+    property real visualWidth: isExpanded ? 200 : 40
+    property real visualHeight: isExpanded ? 300 : 40
     
+    // Invisible paddings
+    property real shadowPaddingBottom: 4
+    property real shadowPaddingLeft: 4
+    property real shadowPaddingTop: 260 // Extra space to allow the animation to expand upwards
+    property real shadowPaddingRight: 160 // Extra space to allow the animation to expand to the right
+
+    implicitWidth: visualWidth + shadowPaddingLeft + shadowPaddingRight
+    implicitHeight: visualHeight + shadowPaddingTop + shadowPaddingBottom
     color: "transparent"
 
-    Behavior on visualWidth { NumberAnimation { duration: 300; easing.type: Easing.OutExpo } }
-    Behavior on visualHeight { NumberAnimation { duration: 300; easing.type: Easing.OutExpo } }
+    Behavior on visualWidth { NumberAnimation { duration: 350; easing.type: Easing.OutExpo } }
+    Behavior on visualHeight { NumberAnimation { duration: 350; easing.type: Easing.OutExpo } }
 
     // --- SYSTEM PROCESSES ---
-    // Specific logout commands for different desktop environments
     Process { 
         id: procLogout 
         command: [
@@ -44,49 +53,77 @@ PanelWindow {
         ] 
     }
     
-    // Standard systemctl commands for suspend, reboot, and poweroff
     Process { id: procSuspend; command: ["systemctl", "suspend"] }
     Process { id: procReboot; command: ["systemctl", "reboot"] }
     Process { id: procPoweroff; command: ["systemctl", "poweroff"] }
 
-    // Main container
+    // --- UI LAYERS ---
     Item {
+        id: dockItem
         width: powerPanel.visualWidth
         height: powerPanel.visualHeight
-        
-        HoverHandler {
-            id: hoverHandler
-        }
-        
-        // --- INVISIBLE INDICATOR ---
-        Rectangle {
-            anchors.bottom: parent.bottom
-            anchors.left: parent.left
-            width: 60
-            height: 60
-            color: Theme.primary 
-            opacity: powerPanel.isExpanded ? 0 : 0 
-            Behavior on opacity { NumberAnimation { duration: 200 } }
-        }
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: powerPanel.shadowPaddingBottom
+        anchors.left: parent.left
+        anchors.leftMargin: powerPanel.shadowPaddingLeft
 
-        // --- Expanded Menu ---
+        // ELEVATION SHADOW LAYER
         Rectangle {
             anchors.fill: parent
-            anchors.margins: powerPanel.isExpanded ? 12 : 0
             color: Theme.surface
-            radius: 16
+            radius: menuBackground.radius
+            
+            layer.enabled: true
+            layer.effect: DropShadow {
+                transparentBorder: true
+                color: Qt.rgba(0, 0, 0, 0.4) 
+                radius: 15     
+                samples: 31    
+                verticalOffset: 4
+                horizontalOffset: 0
+            }
+        }
+
+        // MAIN CONTENT LAYER
+        Rectangle {
+            id: menuBackground
+            anchors.fill: parent
+            color: Theme.surface
+            radius: powerPanel.isExpanded ? 16 : powerPanel.visualHeight / 2
             border.color: Qt.rgba(Theme.surfaceText.r, Theme.surfaceText.g, Theme.surfaceText.b, 0.08)
             border.width: 1
-            opacity: powerPanel.isExpanded ? 1 : 0
-            clip: true
-            
-            Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutExpo } }
-            
+            clip: true 
+
+            Behavior on radius { NumberAnimation { duration: 350; easing.type: Easing.OutExpo } }
+
+            HoverHandler {
+                id: hoverHandler
+            }
+
+            // COMPACT STATE
+            Item {
+                anchors.fill: parent
+                opacity: powerPanel.isExpanded ? 0 : 1
+                visible: opacity > 0
+                Behavior on opacity { NumberAnimation { duration: 200 } }
+
+                Text {
+                    text: "\uf011"
+                    color: Theme.primary
+                    font.pixelSize: 16
+                    anchors.centerIn: parent
+                }
+            }
+
+            // EXPANDED STATE
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 16
                 spacing: 8
-                visible: powerPanel.isExpanded
+                
+                opacity: powerPanel.isExpanded ? 1 : 0
+                visible: opacity > 0
+                Behavior on opacity { NumberAnimation { duration: 350; easing.type: Easing.InOutQuad } }
 
                 Text {
                     text: "\uf011  Power"
@@ -105,22 +142,20 @@ PanelWindow {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 40
                     radius: 12
-                    color: btnMouse.containsMouse ? Theme.primary : Qt.rgba(Theme.surfaceText.r, Theme.surfaceText.g, Theme.surfaceText.b, 0.05)
+                    color: btnHover.hovered ? Theme.primary : Qt.rgba(Theme.surfaceText.r, Theme.surfaceText.g, Theme.surfaceText.b, 0.05)
                     
                     Behavior on color { ColorAnimation { duration: 150 } }
 
                     RowLayout {
                         anchors.centerIn: parent
                         spacing: 12
-                        Text { text: parent.parent.iconText; font.pixelSize: 16; color: btnMouse.containsMouse ? Theme.primaryText : Theme.surfaceText }
-                        Text { text: parent.parent.labelText; font.pixelSize: 14; font.bold: true; color: btnMouse.containsMouse ? Theme.primaryText : Theme.surfaceText }
+                        Text { text: parent.parent.iconText; font.pixelSize: 16; color: btnHover.hovered ? Theme.primaryText : Theme.surfaceText }
+                        Text { text: parent.parent.labelText; font.pixelSize: 14; font.bold: true; color: btnHover.hovered ? Theme.primaryText : Theme.surfaceText }
                     }
                     
-                    MouseArea {
-                        id: btnMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onClicked: {
+                    HoverHandler { id: btnHover }
+                    TapHandler {
+                        onTapped: {
                             if (parent.targetProcess) {
                                 parent.targetProcess.running = true;
                             }

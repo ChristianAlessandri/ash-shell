@@ -2,6 +2,7 @@ import Quickshell
 import QtQuick
 import Qt5Compat.GraphicalEffects
 import "../core"
+import "../components"
 import "../components/island"
 import "../services"
 
