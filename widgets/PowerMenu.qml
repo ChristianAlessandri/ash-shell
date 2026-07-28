@@ -14,7 +14,7 @@ PanelWindow {
 
     exclusionMode: ExclusionMode.Ignore
 
-    property bool isExpanded: mouseArea.containsMouse
+    property bool isExpanded: hoverHandler.hovered
     
     property real visualWidth: isExpanded ? 200 : 60
     property real visualHeight: isExpanded ? 300 : 60
@@ -28,7 +28,23 @@ PanelWindow {
     Behavior on visualHeight { NumberAnimation { duration: 300; easing.type: Easing.OutExpo } }
 
     // --- SYSTEM PROCESSES ---
-    Process { id: procLogout; command: ["hyprctl", "dispatch", "exit"] }
+    // Specific logout commands for different desktop environments
+    Process { 
+        id: procLogout 
+        command: [
+            "bash", 
+            "-c", 
+            `case "$XDG_CURRENT_DESKTOP" in
+                *Hyprland*) hyprctl dispatch exit ;;
+                *Sway*|*sway*) swaymsg exit ;;
+                *GNOME*) gnome-session-quit --logout --no-prompt ;;
+                *KDE*) qdbus org.kde.ksmserver /KSMServer logout 0 0 0 ;;
+                *) loginctl terminate-user $USER ;;
+            esac`
+        ] 
+    }
+    
+    // Standard systemctl commands for suspend, reboot, and poweroff
     Process { id: procSuspend; command: ["systemctl", "suspend"] }
     Process { id: procReboot; command: ["systemctl", "reboot"] }
     Process { id: procPoweroff; command: ["systemctl", "poweroff"] }
@@ -37,6 +53,10 @@ PanelWindow {
     Item {
         width: powerPanel.visualWidth
         height: powerPanel.visualHeight
+        
+        HoverHandler {
+            id: hoverHandler
+        }
         
         // --- INVISIBLE INDICATOR ---
         Rectangle {
@@ -129,12 +149,6 @@ PanelWindow {
                     targetProcess: procPoweroff
                 }
             }
-        }
-
-        MouseArea {
-            id: mouseArea
-            anchors.fill: parent
-            hoverEnabled: true
         }
     }
 }
